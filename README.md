@@ -9,7 +9,10 @@
 
 A small web app on the glasses (called **Beru** here, after my assistant) chats with your Muse. Your Mac pairs with Muse as a "gadget" using Meta's open-source [Muse Gadget SDK](https://github.com/facebookincubator/muse-gadget-sdk), ported to macOS, and relays messages between the glasses and Muse.
 
-<p align="center"><img src="docs/demo.gif" width="420" alt="Dictating a question on the glasses, Beru working, the answer, then an approval request"></p>
+<table align="center"><tr>
+<td align="center"><img src="docs/real-glasses.gif" width="300" alt="Through the glasses: Beru answers about an upcoming call while the mascot reacts"><br><sub><b>On real glasses</b> · <a href="docs/real-glasses.mp4">watch the 43-second clip with sound</a></sub></td>
+<td align="center"><img src="docs/demo.gif" width="380" alt="Dictating a question on the glasses, Beru working, the answer, then an approval request"><br><sub><b>The full flow</b> (scripted)</sub></td>
+</tr></table>
 
 | Open | Working | Answer |
 |:---:|:---:|:---:|
