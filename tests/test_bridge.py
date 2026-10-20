@@ -288,7 +288,26 @@ async def test_ask_rejects_nan_wait_and_reused_ids(client):
 async def test_speech_falls_back_cleanly_when_the_voice_is_down(client, monkeypatch):
     from muse_bridge import server
     monkeypatch.setattr(server, "VOICE_URL", "http://127.0.0.1:9/tts")  # nothing listens here
-    resp = await client.post("/api/speech", json={"text": "Hello Sid."}, headers=AUTH)
+    resp = await client.post("/api/speech", json={"text": "Hello there."}, headers=AUTH)
     assert resp.status == 503
     assert (await client.post("/api/speech", json={"text": ""}, headers=AUTH)).status == 400
     assert (await client.post("/api/speech", json={"text": "hi"})).status == 401
+
+
+async def test_launcher_manifest_falls_back_to_the_bundled_glyph(aiohttp_client, tmp_path):
+    import json
+
+    from muse_bridge.backends import FakeBackend
+    from muse_bridge.server import DEFAULT_LAUNCHER_ICON, Bridge, make_app
+    (tmp_path / "index.html").write_text("<!doctype html>")
+    (tmp_path / ".well-known").mkdir()
+    (tmp_path / ".well-known" / "meta-wearables-manifest.json").write_text(json.dumps(
+        {"version": 1, "name": "Beru", "appearance": {"theme_color": "#fff", "icon": {"src": "/icons/mascot-launcher.png"}}}))
+    client = await aiohttp_client(make_app(Bridge(FakeBackend()), tmp_path))
+    for path in ("/.well-known/meta-wearables-manifest.json", "/beru/.well-known/meta-wearables-manifest.json"):
+        data = await (await client.get(path)).json()
+        assert data["appearance"]["icon"]["src"] == DEFAULT_LAUNCHER_ICON
+    (tmp_path / "icons").mkdir()
+    (tmp_path / "icons" / "mascot-launcher.png").write_bytes(b"png")
+    data = await (await client.get("/beru/.well-known/meta-wearables-manifest.json")).json()
+    assert data["appearance"]["icon"]["src"] == "/icons/mascot-launcher.png"

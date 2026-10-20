@@ -2,10 +2,10 @@
 
 Differences from the stock Linux service:
 
-* Muse is offered **no commands** (spec D6). The stock executor's ``system.run``,
+* Muse is offered **no commands**. The stock executor's ``system.run``,
   ``file.read`` and ``file.write`` are never registered, and any invoke is refused.
-* While a session is up, Muse's chat event stream for the glasses side chat is
-  read continuously and fanned out to whoever is listening (one turn at a time).
+* While a session is up, Muse's chat event stream (all chats; the bridge uses the main
+  chat) is read continuously and fanned out to whoever is listening (one turn at a time).
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from muse_bridge.backends import GLASSES_SESSION_ID
 
 log = logging.getLogger(__name__)
 
-# Muse may call these on this device. Empty until ticket 06 adds display.* commands.
+# Muse may call these on this device. Deliberately empty: Muse gets no shell, files or other commands.
 ALLOWED_COMMANDS: dict = {}
 _RESUBSCRIBE_S = 2.0
 

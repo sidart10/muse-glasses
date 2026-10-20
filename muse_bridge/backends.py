@@ -19,7 +19,7 @@ from typing import AsyncIterator, Protocol
 
 log = logging.getLogger(__name__)
 
-# The glasses talk in Muse's main chat (None). Side threads were tried first (spec D7):
+# The glasses talk in Muse's main chat (None). Side threads were tried first:
 # Muse accepts messages there but its replies do not reach a gadget's subscription.
 GLASSES_SESSION_ID = None
 TURN_TIMEOUT_S = 600.0  # big tasks (booking, research) run for minutes
@@ -100,7 +100,7 @@ class FakeBackend:
             yield {"type": "activity", "text": step}
         if "approve" in text.lower() and getattr(self, "_sink", None):
             await self._sink({"type": "approvals", "items": [{"id": "fake", "action": "Send email",
-                              "details": ["To: harsh@example.com", "Subject: Meeting at 7 PM"]}]}, "muse")
+                              "details": ["To: alex@example.com", "Subject: Meeting at 7 PM"]}]}, "muse")
         await asyncio.sleep(self._delay)
         heard = text.split("]\n", 1)[-1]  # drop the glasses hint the bridge adds
         answer = f"Practice mode. Your real Muse isn't connected yet. I heard: {heard}"

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Default launcher glyph: a speech bubble. Single-colour mask; the glasses tint it. -->
+  <mask id="dots">
+    <rect width="64" height="64" fill="#fff"/>
+    <circle cx="21" cy="29" r="4" fill="#000"/>
+    <circle cx="32" cy="29" r="4" fill="#000"/>
+    <circle cx="43" cy="29" r="4" fill="#000"/>
+  </mask>
+  <path mask="url(#dots)" fill="#fff"
+        d="M14 10h36a8 8 0 0 1 8 8v22a8 8 0 0 1-8 8H30l-11 9v-9h-5a8 8 0 0 1-8-8V18a8 8 0 0 1 8-8z"/>
+</svg>

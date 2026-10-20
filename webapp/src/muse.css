@@ -28,9 +28,17 @@
 .mascot-row { display: flex; align-items: center; gap: 12px; min-height: 96px; margin: -6px 0 -22px; }
 .msg-row--you { scroll-margin-top: 92px; }
 
-/* Bottom dock: one Dictate button, or the dictation field */
+/* Bottom dock: the message field (pinch it to dictate) */
 .muse-dock { position: absolute; left: 44px; right: 44px; bottom: 22px; }
 .muse-send-error { display: block; margin: 0 8px 6px; }
 /* Beru's messages sit on the lens: the material only shows when you swipe up and select one */
 .msg-row--beru .msg-bubble:not(:focus) canvas { opacity: 0; }
 .msg-row--beru .msg-bubble canvas { transition: opacity 160ms ease; }
+
+/* Approvals screen */
+.muse-reader { position: absolute; inset: 0; }
+.muse-reader-body { display: flex; flex-direction: column; gap: 18px; padding: 8px 48px 48px; }
+.muse-approval-detail { display: flex; flex-direction: column; gap: 10px; }
+.muse-approval-detail > :first-child { text-align: center; overflow-wrap: anywhere; }
+.muse-sheet-actions { display: flex; justify-content: center; padding-top: 4px; }
+.muse-approval-detail > :first-child::first-letter { text-transform: uppercase; }

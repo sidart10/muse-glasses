@@ -1,3 +1,11 @@
+"""Turn the official mascot still into the glasses launcher glyph (personal use only, never commit).
+
+The launcher only takes single-colour artwork: light fur and face stay solid, the eyes and smile
+become holes. The bridge uses the output automatically when it exists.
+
+    /tmp/mascot-tools/bin/python -I tools/make_launcher_glyph.py \
+        /Applications/Muse.app/Contents/Resources/Hatch.jpg webapp/public/icons/mascot-launcher.png
+"""
 import sys
 from PIL import Image, ImageOps, ImageFilter
 from rembg import new_session, remove

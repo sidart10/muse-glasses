@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=600, height=600, initial-scale=1, user-scalable=no">
+<title>Muse</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main id="app">
+    <header>
+      <span id="dot" class="dot" aria-hidden="true"></span>
+      <span id="title">Muse</span>
+      <span id="status" role="status" aria-live="polite"></span>
+    </header>
+
+    <section id="you" aria-label="You said"></section>
+    <ol id="steps" aria-label="What Muse is doing" aria-live="polite"></ol>
+    <section id="approval" hidden role="alert">
+      <div id="approval-title"></div>
+      <ul id="approval-details"></ul>
+      <div class="approval-cta">Approve or deny in the Muse app on your phone</div>
+    </section>
+    <section id="muse" aria-label="Muse said" aria-live="polite" tabindex="0">
+      Say "Hey Meta, tell Muse…" or dictate below.
+    </section>
+
+    <form id="composer" autocomplete="off">
+      <input id="input" name="text" type="text" enterkeyhint="send"
+             placeholder="Dictate to Muse" aria-label="Message to Muse" maxlength="2000">
+    </form>
+    <p id="hint"></p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

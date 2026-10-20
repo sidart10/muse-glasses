@@ -11,7 +11,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 
 mkdir -p "$RT"
 rsync -a --delete --exclude .venv --exclude .git --exclude __pycache__ --exclude .pytest_cache \
-  --exclude webapp/node_modules --exclude webapp/src --exclude webapp/legacy "$SRC/" "$RT/"
+  --exclude webapp/node_modules --exclude webapp/src "$SRC/" "$RT/"
 [ -x "$RT/.venv/bin/python" ] || uv venv -q --python 3.12 "$RT/.venv"
 uv pip install -q --python "$RT/.venv/bin/python" "aiohttp==3.14.5" "bless==0.3.0" "bleak==3.0.2" \
   "cryptography>=3.3.2" "websockets>=13"

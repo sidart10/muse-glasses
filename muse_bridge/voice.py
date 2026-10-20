@@ -42,12 +42,20 @@ def _mp3(samples, sample_rate: int) -> bytes:
 
 
 async def _tts(request: web.Request) -> web.Response:
+    # JSON only: browsers can't send that cross-origin without a preflight this server never
+    # grants, so a web page open on the Mac can't keep the voice busy.
+    if request.content_type != "application/json":
+        return web.json_response({"error": "expected application/json"}, status=415)
     try:
         body = await request.json()
     except ValueError:
         return web.json_response({"error": "expected JSON"}, status=400)
-    text = body.get("text") if isinstance(body, dict) else None
+    if not isinstance(body, dict):
+        return web.json_response({"error": "expected a JSON object"}, status=400)
+    text = body.get("text")
     voice = body.get("voice") or DEFAULT_VOICE
+    if not isinstance(voice, str):
+        return web.json_response({"error": "unknown voice"}, status=400)
     if not isinstance(text, str) or not text.strip() or len(text) > MAX_CHARS:
         return web.json_response({"error": "text must be 1-600 characters"}, status=400)
     if voice not in VOICES:

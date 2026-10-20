@@ -4,7 +4,15 @@
 
 A small web app on the glasses (called **Beru** here, after my assistant) chats with your Muse. Your Mac pairs with Muse as a "gadget" using Meta's open-source [Muse Gadget SDK](https://github.com/facebookincubator/muse-gadget-sdk), ported to macOS, and relays messages between the glasses and Muse.
 
-<!-- demo video goes here -->
+<p align="center"><img src="docs/demo.gif" width="420" alt="Dictating a question on the glasses, Beru working, the answer, then an approval request"></p>
+
+| Open | Working | Answer |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/open.png" width="250" alt="Empty chat with the message box selected"> | <img src="docs/screenshots/working.png" width="250" alt="Beru checking the calendar"> | <img src="docs/screenshots/answer.png" width="250" alt="Beru's answer under the question"> |
+| **Approval needed** | **Approval details** | **Scrolling the chat** |
+| <img src="docs/screenshots/approval.png" width="250" alt="Approval card while Beru works"> | <img src="docs/screenshots/approval-detail.png" width="250" alt="Approval details screen"> | <img src="docs/screenshots/scroll.png" width="250" alt="A selected message while scrolling up"> |
+
+<sub>The real app at the glasses' 600×600 resolution, with a scripted conversation. Black is see-through on the lens. The mascot is Meta's artwork from my own install: it isn't included, but you can extract it from yours (see [the mascot](#optional-the-muse-mascot)).</sub>
 
 > **Unofficial personal project.** Not affiliated with, endorsed by, or supported by Meta. Muse, Meta and Ray-Ban Display are trademarks of their owners. The Gadget SDK is "not a supported product" and may change or stop working at any time.
 
@@ -68,7 +76,7 @@ The installer:
 - clones the Gadget SDK at a pinned commit;
 - builds the web app and runs the tests;
 - copies the runtime to `~/Library/Application Support/muse-glasses/runtime`, because launchd can't read `~/Desktop` without a privacy prompt;
-- starts two background services, the bridge and the voice.
+- starts the bridge as a background service, plus the voice service with `--voice`.
 
 Settings are saved in `~/Library/Application Support/muse-glasses/config.env`.
 
@@ -114,7 +122,7 @@ To keep it running across reboots, use `sudo cloudflared service install` or a L
 .venv/bin/python -m muse_bridge link --qr ~/Desktop/glasses-install.png
 ```
 
-Scan the QR code with your phone. It opens the Meta AI app and installs **Beru** on the glasses. Use `--name` to call it something else.
+Scan the QR code with your phone. It opens the Meta AI app and installs **Beru** on the glasses. `--name` changes the name on the launcher; the screens themselves say "Beru" (see `webapp/index.html` and `webapp/src/MuseApp.tsx`).
 
 **The QR code contains your glasses token: don't share it.** Delete the image once you've installed the app.
 
@@ -144,12 +152,11 @@ Scan the QR code with your phone. It opens the Meta AI app and installs **Beru**
 
 ## Optional: the Muse mascot
 
-The mascot isn't included: the artwork is Meta's. If the Muse app is installed on your Mac, you can extract it for your own use. Without it, the app shows the toolkit's sparkle icon.
+The mascot isn't included: the artwork is Meta's. If the Muse app is installed on your Mac, you can extract it for your own use. Without it, the app shows a sparkle where the mascot would be, and the launcher shows a speech bubble.
 
 ```bash
 uv venv /tmp/mascot-tools && uv pip install --python /tmp/mascot-tools/bin/python "rembg[cpu]" pillow
 /tmp/mascot-tools/bin/python -I tools/make_mascot.py webapp/public/mascot
-/tmp/mascot-tools/bin/python -I tools/make_icons.py
 /tmp/mascot-tools/bin/python -I tools/make_launcher_glyph.py /Applications/Muse.app/Contents/Resources/Hatch.jpg webapp/public/icons/mascot-launcher.png
 ./deploy.sh
 ```
@@ -160,7 +167,7 @@ These outputs are gitignored: keep them out of any repository you publish.
 
 ```bash
 .venv/bin/python -m pytest -q                       # bridge tests
-.venv/bin/python -m muse_bridge serve --fake        # practice mode, no Muse needed: http://127.0.0.1:8790/beru/#k=<token>
+MUSE_BRIDGE_API_TOKEN=practice .venv/bin/python -m muse_bridge serve --fake   # no Muse needed: open http://127.0.0.1:8790/beru/#k=practice
 cd webapp && npm run dev                            # web app with hot reload
 ./deploy.sh                                         # build, test, copy to the runtime, restart services
 ```
@@ -168,6 +175,19 @@ cd webapp && npm run dev                            # web app with hot reload
 - **Logs:** `~/Library/Logs/muse-bridge.log` and `muse-glasses-voice.log`.
 - **Start-up diagnostics:** each time the glasses open the app, it logs a `glasses diag:` line with timings.
 - **Simulator:** Meta's Ray-Ban Display Simulator Chrome extension is handy for checking layouts at 600×600.
+
+### Settings
+
+| Variable | What it does |
+|---|---|
+| `MUSE_GLASSES_HOST` | Tunnel hostname used by `link`. The installer saves it in `config.env`. |
+| `BRIDGE_LABEL`, `VOICE_LABEL` | LaunchAgent names. Defaults: `local.muse-glasses.bridge` / `.voice`. |
+| `MUSE_BRIDGE_API_TOKEN` | Overrides the Keychain glasses token. Testing only: the kill switch can't rotate it. |
+| `MUSE_BRIDGE_STATE_DIR` | Where the bridge keeps its state. |
+| `MUSE_BRIDGE_MODALITY` | `text` (default) or `voice`. Muse's own audio, currently broken on Muse's side. |
+| `MUSE_BRIDGE_EVENT_TAP` | Debug: writes raw Muse chat events to `~/Library/Logs`. Contains your chats; leave it off. |
+| `BERU_VOICE`, `BERU_VOICE_SPEED`, `BERU_VOICE_URL` | Voice name (default `af_heart`), speed (1.15), voice service address. |
+| `MUSEGADGET_ADV` | Bluetooth advertising while pairing. Default `name`; leave it. |
 
 ## Troubleshooting
 

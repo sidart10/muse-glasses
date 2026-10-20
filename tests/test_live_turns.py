@@ -113,7 +113,7 @@ async def test_normal_answer_streams_and_finishes(monkeypatch):
 async def test_phone_message_reply_is_not_shown_as_the_glasses_answer(monkeypatch):
     live, _ = make_backend(monkeypatch, stall=0.4)
     out = await run_turn(live, [
-        ev("message.user", "u-phone", role="user"),               # Sid typed on the phone
+        ev("message.user", "u-phone", role="user"),               # the user typed on the phone
         ev("delta.message_start", "r-phone"),                      # parentless reply to that
         ev("delta.message_done", "r-phone", display_text="Answer to the phone message"),
         ev("delta.message_start", "r1", parent="u1"),

@@ -1,11 +1,12 @@
 // Keeps Beru stored on the glasses so it opens instantly, even on a slow connection.
 // The page comes from the stored copy at once and is refreshed in the background, so a new
 // version shows on the next launch. API calls and the mascot videos always go to the network.
-const CACHE = 'beru-shell-v1';
-const SHELL = ['/beru/', '/mascot/wave.jpg'];
+const CACHE = 'beru-shell-v2';
+const SHELL_URL = '/beru/';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {}));
+  // Store the page together with the files it loads, so the stored copy is always complete.
+  event.waitUntil(refreshShell(new Request(SHELL_URL)).catch(() => {}));
   self.skipWaiting();
 });
 

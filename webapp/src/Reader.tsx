@@ -31,7 +31,7 @@ export function ApprovalSheet({ approvals, onClose }: { approvals: Approval[]; o
   useEffect(() => { rootRef.current?.querySelector<HTMLElement>('[tabindex]')?.focus({ preventScroll: true }); }, []);
   return (
     <Page ref={pageRef} headerText={approvals.length > 1 ? `${approvals.length} approvals waiting` : 'Approval waiting'}
-          headerIcon={phoneShield} headerMetadata="Approve or deny in the Muse app on your phone">
+          headerIcon={phoneShield} headerMetadata="Decide on your phone">
       <div ref={rootRef} className="muse-reader">
         <ScrollView insetForHeader headerHeight={height} tabIndex={0} scrollbarEnabled height="100%"
                     ariaLabel="Pending approvals">

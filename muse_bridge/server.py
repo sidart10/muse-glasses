@@ -1,15 +1,19 @@
-"""HTTP face of the bridge: the glasses Web App and its two API calls.
+"""HTTP face of the bridge: serves the glasses web app and its API.
 
-``POST /api/say {"text"}`` queues a message for Muse and returns at once (WebMCP
-gives a tool 10 seconds). ``GET /api/feed?after=<seq>`` long-polls the events of
-every request, oldest first. Static files under ``/`` are the built Web App and
-need no token; everything under ``/api/`` needs ``Authorization: Bearer <token>``.
+``POST /api/say {"text"}`` queues a message for Muse and returns at once.
+``GET /api/feed?after=<seq>`` long-polls the events of every request, oldest first.
+``POST /api/ask`` is the same as say but waits briefly for a short answer (WebMCP tools).
+``POST /api/speech`` proxies one sentence to the local voice service; ``POST /api/diag``
+logs launch diagnostics; ``GET /api/health``; ``GET /api/audio/<id>`` streams Muse's own
+audio when ``MUSE_BRIDGE_MODALITY=voice`` (experimental). Static files under ``/`` are the
+built web app and need no token; everything under ``/api/`` needs ``Authorization: Bearer <token>``.
 """
 
 from __future__ import annotations
 
 import asyncio
 import hmac
+import json
 import math
 import os
 import re
@@ -36,7 +40,7 @@ SPOKEN_ANSWER_MAX = 400  # longer answers stay on the display rather than being 
 ASK_WAIT_MAX_S = 8.5  # WebMCP abandons a tool call after 10 s; leave room for the trip back
 
 # Prepended to every glasses message so Muse answers for a small lens and a TTS
-# voice (spec D4). "Tell me more" style follow-ups still get longer answers.
+# voice. "Tell me more" style follow-ups still get longer answers.
 GLASSES_HINT = ("[Sent from my Ray-Ban Display glasses by voice. Answer in 1 to 3 short "
                 "spoken sentences, no markdown, no lists, unless I ask for more detail.]\n")
 
@@ -218,7 +222,7 @@ async def _ask(request: web.Request) -> web.Response:
     except asyncio.QueueFull:
         return web.json_response({"error": "busy, try again in a moment"}, status=429)
     result = await bridge.wait_for_answer(request_id, wait) if wait else {"status": "pending", "answer": ""}
-    # L6: Meta AI reads answers verbatim; long ones belong on the display, and raw
+    # Meta AI reads answers verbatim; long ones belong on the display, and raw
     # error text shouldn't be spoken as if Beru said it.
     if result["status"] == "answered" and len(result["answer"]) > SPOKEN_ANSWER_MAX:
         result = {"status": "pending", "answer": ""}
@@ -296,8 +300,8 @@ async def _diag(request: web.Request) -> web.Response:
         return web.json_response({"error": "expected JSON"}, status=400)
     if not isinstance(body, dict):
         return web.json_response({"error": "expected JSON object"}, status=400)
-    safe = {k: str(v)[:300] for k, v in list(body.items())[:12]}
-    log.info("glasses diag: %s", safe)
+    safe = {str(k)[:40]: str(v)[:300] for k, v in list(body.items())[:12]}
+    log.info("glasses diag: %s", json.dumps(safe))  # JSON-escaped, so no forged log lines
     return web.json_response({"ok": True})
 
 
@@ -313,6 +317,7 @@ class PathOnlyAccessLogger(AbstractAccessLogger):
 
 
 APP_PATH = "/beru/"  # the address the install link points at
+DEFAULT_LAUNCHER_ICON = "/launcher/default.png"
 
 
 def make_app(bridge: Bridge, static_dir: Path | None = None) -> web.Application:
@@ -339,13 +344,21 @@ def make_app(bridge: Bridge, static_dir: Path | None = None) -> web.Application:
         async def _app_redirect(_request: web.Request) -> web.Response:
             raise web.HTTPPermanentRedirect(APP_PATH)
 
-        async def _manifest(_request: web.Request) -> web.FileResponse:
-            return web.FileResponse(manifest, headers={"Content-Type": "application/json; charset=utf-8"})
+        # Launcher icon: your own extracted mascot glyph when tools/make_launcher_glyph.py has made
+        # one, otherwise the speech-bubble glyph that ships with the repo.
+        custom_icon = static_dir / "icons" / "mascot-launcher.png"
+
+        async def _manifest(_request: web.Request) -> web.Response:
+            data = json.loads(manifest.read_text())
+            if not custom_icon.exists():
+                data["appearance"]["icon"]["src"] = DEFAULT_LAUNCHER_ICON
+            return web.Response(text=json.dumps(data), content_type="application/json", charset="utf-8")
 
         app.router.add_get(APP_PATH.rstrip("/"), _app_redirect)
         app.router.add_get(APP_PATH, _index)
         if manifest.exists():
-            app.router.add_get(APP_PATH + ".well-known/meta-wearables-manifest.json", _manifest)
+            for path in ("/.well-known/meta-wearables-manifest.json", APP_PATH + ".well-known/meta-wearables-manifest.json"):
+                app.router.add_get(path, _manifest)
         app.router.add_static("/", static_dir, show_index=False)
 
     async def on_startup(app_):

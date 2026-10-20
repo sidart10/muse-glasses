@@ -4,8 +4,8 @@ Cuts each clip out onto black (see-through on the Ray-Ban Display), writes small
 plus posters to webapp/public/mascot/, and makes the launcher icons from the official still.
 The outputs are gitignored and must never be committed or shared.
 
-    uv venv /tmp/hatch-tools/.venv && uv pip install --python /tmp/hatch-tools/.venv/bin/python "rembg[cpu]" pillow
-    /tmp/hatch-tools/.venv/bin/python -I tools/make_mascot.py webapp/public/mascot
+    uv venv /tmp/mascot-tools && uv pip install --python /tmp/mascot-tools/bin/python "rembg[cpu]" pillow
+    /tmp/mascot-tools/bin/python -I tools/make_mascot.py webapp/public/mascot
 """
 import subprocess, sys, time
 from pathlib import Path
@@ -42,7 +42,7 @@ for name, clip in CLIPS.items():
 from PIL import ImageOps
 icons = OUT.parent / "icons"; icons.mkdir(exist_ok=True)
 still = Image.open(SRC / "Hatch.jpg").convert("RGB")
-for name, size in (("icon-96.png", 96), ("icon-192.png", 192), ("apple-touch-icon.png", 180)):
+for name, size in (("icon-96.png", 96), ("icon-192.png", 192), ("icon-512.png", 512), ("apple-touch-icon.png", 180)):
     tile = ImageOps.fit(still, (size, size), Image.LANCZOS, centering=(0.5, 0.42))
     mask = Image.new("L", (size, size), 0); ImageDraw.Draw(mask).rounded_rectangle((0, 0, size - 1, size - 1), radius=size // 4, fill=255)
     out = Image.new("RGBA", (size, size)); out.paste(tile, mask=mask); out.save(icons / name)

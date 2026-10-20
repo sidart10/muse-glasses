@@ -74,7 +74,7 @@ def _say(args) -> int:
             return json.load(resp)
 
     request_id = call("/api/say", {"text": args.text})["request_id"]
-    seq, shown = 0, ""
+    seq = 0
     while True:
         for event in call(f"/api/feed?after={seq}")["events"]:
             seq = event["seq"]
@@ -83,8 +83,7 @@ def _say(args) -> int:
             if event["type"] == "status":
                 print(f"… {event['text']}", file=sys.stderr)
             elif event["type"] == "reply" and event.get("done"):
-                shown = event["text"]
-                print(shown)
+                print(event["text"])
             elif event["type"] == "error":
                 print(f"error: {event['text']}", file=sys.stderr)
                 return 1
@@ -96,6 +95,9 @@ def _switch(off: bool) -> int:
     from muse_bridge import settings
 
     settings.set_disabled(off)
+    if os.environ.get("MUSE_BRIDGE_API_TOKEN"):
+        print("Warning: MUSE_BRIDGE_API_TOKEN is set, so that token keeps working until you unset it.",
+              file=sys.stderr)
     if off:
         settings.rotate_api_token()
         print("Bridge is OFF. The old glasses link no longer works.")

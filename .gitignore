@@ -8,7 +8,6 @@ vendor/
 # Web app build + deps
 webapp/node_modules/
 webapp/dist/
-webapp/legacy/
 # Local state and secrets never live here, but guard anyway
 *.env
 .env*

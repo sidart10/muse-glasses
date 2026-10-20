@@ -51,6 +51,7 @@ export function MuseApp() {
   const [sendError, setSendError] = useState('');
   const [sending, setSending] = useState(false);
   const lastRef = useRef<HTMLDivElement>(null);
+  const approvalRef = useRef<HTMLDivElement>(null);
   const turnRef = useRef<HTMLDivElement>(null); // your latest message, with the mascot beside it
   const composerRef = useRef<HTMLDivElement>(null);
   const autoSend = useRef<number | undefined>(undefined);
@@ -101,10 +102,11 @@ export function MuseApp() {
   // ---- keep the newest message in view, and focus on the message field ---------------------------
   // Focus returns to the field whenever the chat changes, unless the wearer is reading further up.
   const focusComposer = () => composerRef.current?.querySelector('textarea')?.focus({ preventScroll: true });
+  // Swiping up from the message box goes to a waiting approval first, then the newest message.
   const focusLastMessage = () => {
-    const target = lastRef.current?.querySelector<HTMLElement>('[tabindex]')
-      ?? lastRef.current?.closest<HTMLElement>('[tabindex]');
-    target?.focus();
+    const focusable = (el: HTMLElement | null) => el?.querySelector<HTMLElement>('[tabindex]') ?? null;
+    const lastMessage = [...document.querySelectorAll<HTMLElement>('.msg-row [tabindex]')].at(-1) ?? null;
+    (focusable(approvalRef.current) ?? lastMessage)?.focus();
   };
   useLayoutEffect(() => {
     if (overlay !== 'none') return;
@@ -133,6 +135,12 @@ export function MuseApp() {
     } finally {
       inFlight.current = false;
       setSending(false);
+      // Dictation that landed while this was sending would otherwise sit unsent.
+      const pending = draftRef.current;
+      if (pending.trim() && pending !== text) {
+        window.clearTimeout(autoSend.current);
+        autoSend.current = window.setTimeout(() => { void send(pending); }, AUTO_SEND_MS);
+      }
     }
   };
   const onDraft = (text: string) => {
@@ -201,8 +209,9 @@ export function MuseApp() {
               </Fragment>
             ))}
             {lastYou < 0 && busy && mascotRow}
-            {!busy && state.approvals[0] && (
-              <div ref={lastRef}>
+            {/* Muse usually asks for approval mid-task, so the card shows while Beru is still working. */}
+            {state.approvals[0] && (
+              <div ref={approvalRef}>
                 <ListItem
                   icon={phoneShield}
                   iconTintColor={IconTintColor.WARNING}

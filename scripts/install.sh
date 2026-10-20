@@ -9,12 +9,13 @@ SRC="$(cd "$(dirname "$0")/.." && pwd)"
 HOST="${MUSE_GLASSES_HOST:-}"; WITH_VOICE=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --host) HOST="$2"; shift 2 ;;
+    --host) HOST="${2:-}"; shift 2 || shift ;;
     --voice) WITH_VOICE=1; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
 done
 [ -n "$HOST" ] || { echo "Pass --host <the hostname your tunnel serves, e.g. glasses.example.com>" >&2; exit 2; }
+[[ "$HOST" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$ ]] || { echo "Not a hostname: $HOST" >&2; exit 2; }
 for tool in uv npm git; do command -v "$tool" >/dev/null || { echo "missing: $tool" >&2; exit 1; }; done
 
 echo "1/5 Meta's Muse Gadget SDK at $SDK_COMMIT"
@@ -26,7 +27,7 @@ git -C "$SRC/vendor/muse-gadget-sdk" checkout -q "$SDK_COMMIT"
 
 echo "2/5 Python environment and web app dependencies"
 [ -x "$SRC/.venv/bin/python" ] || uv venv -q --python 3.12 "$SRC/.venv"
-uv pip install -q --python "$SRC/.venv/bin/python" -e "$SRC[test,qr]"
+uv pip install -q --python "$SRC/.venv/bin/python" -e "$SRC[test,qr]" -e "$SRC/vendor/muse-gadget-sdk/linux"
 (cd "$SRC/webapp" && npm ci --silent)
 
 echo "3/5 Settings in $CONFIG"
@@ -40,10 +41,13 @@ mkdir -p "$HOME_DIR"; chmod 700 "$HOME_DIR"
 echo "4/5 Build, test, copy to $RT"
 "$SRC/deploy.sh" >/dev/null
 
+xml() { local s="${1//&/&amp;}"; s="${s//</&lt;}"; printf '%s' "${s//>/&gt;}"; }
+
 agent() {  # label, log name, python, env PYTHONPATH, args...
-  local label="$1" log="$2" py="$3" pypath="$4"; shift 4
-  local plist="$HOME/Library/LaunchAgents/$label.plist" args=""
-  for a in "$@"; do args="$args<string>$a</string>"; done
+  local label="$1" log; log="$(xml "$HOME/Library/Logs/$2.log")"
+  local py pypath rt plist="$HOME/Library/LaunchAgents/$1.plist" args=""
+  py="$(xml "$3")"; pypath="$(xml "$4")"; rt="$(xml "$RT")"; shift 4
+  for a in "$@"; do args="$args<string>$(xml "$a")</string>"; done
   cat > "$plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -54,13 +58,13 @@ agent() {  # label, log name, python, env PYTHONPATH, args...
     <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     <key>PYTHONPATH</key><string>$pypath</string>
   </dict>
-  <key>WorkingDirectory</key><string>$RT</string>
+  <key>WorkingDirectory</key><string>$rt</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ThrottleInterval</key><integer>10</integer>
   <key>ProcessType</key><string>Interactive</string>
-  <key>StandardOutPath</key><string>$HOME/Library/Logs/$log.log</string>
-  <key>StandardErrorPath</key><string>$HOME/Library/Logs/$log.log</string>
+  <key>StandardOutPath</key><string>$log</string>
+  <key>StandardErrorPath</key><string>$log</string>
 </dict></plist>
 PLIST
   launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
