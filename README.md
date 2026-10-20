@@ -22,7 +22,7 @@ A small web app on the glasses (called **Beru** here, after my assistant) chats 
 - **Live progress.** While Muse works you see what it's doing ("Checking your calendar…"), with the Muse mascot reacting: working, answering, celebrating.
 - **Spoken answers** in a natural local voice ([Kokoro](https://github.com/thewh1teagle/kokoro-onnx), free, runs on your Mac), sentence by sentence. It falls back to the glasses' built-in voice.
 - **Approvals.** When Muse needs you to approve something, the glasses show it and point you to your phone.
-- **A normal chat.** Swipe up and down through the conversation. The last three days stay on the glasses.
+- **A fresh chat every time.** Each open starts empty with the message box ready; swipe up and down within the conversation. Your full history stays in the Muse app. If Muse is still working on something when you reopen, that request and its answer come back.
 - **Opens instantly.** After the first launch the app is stored on the glasses and connects in the background.
 - **Locked down.** Muse gets no shell or file access on your Mac. The glasses need a secret token, and one command shuts everything off.
 
@@ -130,7 +130,7 @@ Scan the QR code with your phone. It opens the Meta AI app and installs **Beru**
 
 | Gesture | What it does |
 |---|---|
-| Index pinch on the message box | Opens dictation. Speak, and it sends after a two-second pause. |
+| Index pinch on the message box | Opens Meta's dictation. Speak, confirm with **Insert**, and Beru sends it two seconds later. |
 | Swipe up / down | Moves through the chat. |
 | Index pinch on an approval | Shows what Muse wants to do (approve it on your phone). |
 | Middle-finger pinch (Back) | Closes the approvals screen. On the chat itself, it opens the glasses' system menu (Meta's design). |
@@ -141,7 +141,7 @@ Scan the QR code with your phone. It opens the Meta AI app and installs **Beru**
 - **The glasses need a long random token,** carried in the install QR code and checked on every request. It's stored in the Keychain (`muse-bridge-api-token`) and never written to logs: the access log records paths only.
 - **Kill switch:** `.venv/bin/python -m muse_bridge off` refuses every request and rotates the token. `on` turns it back on; then make a new QR code.
 - **The SDK token stays in your Keychain** (`muse-gadget-sdk-token`). Don't revoke it before re-pairing with a new one: revoking the token also revokes the device.
-- Only messages go between the glasses, the bridge and Muse. Nothing is sent to any other service.
+- Your messages go only between the glasses, the bridge and Muse. The one other request: Meta's UI toolkit loads its Noto Sans font from Google Fonts.
 
 ## Known limits
 
@@ -168,7 +168,7 @@ These outputs are gitignored: keep them out of any repository you publish.
 ```bash
 .venv/bin/python -m pytest -q                       # bridge tests
 MUSE_BRIDGE_API_TOKEN=practice .venv/bin/python -m muse_bridge serve --fake   # no Muse needed: open http://127.0.0.1:8790/beru/#k=practice
-cd webapp && npm run dev                            # web app with hot reload
+cd webapp && npm run dev                            # web app with hot reload; /api goes to the bridge on :8790
 ./deploy.sh                                         # build, test, copy to the runtime, restart services
 ```
 
@@ -198,4 +198,4 @@ cd webapp && npm run dev                            # web app with hot reload
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Builds on Meta's Muse Gadget SDK and Wearables UI Toolkit, both Apache-2.0.
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). Builds on Meta's Muse Gadget SDK (Apache-2.0) and Wearables UI Toolkit (Apache-2.0; its icon package is under the Meta Wearables Developer Terms). Neither is included in this repository.

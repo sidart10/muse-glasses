@@ -20,11 +20,6 @@ import { ApprovalSheet } from './Reader';
 import { Mascot, type Mood } from './Mascot';
 import { MessageBubble } from './MessageBubble';
 
-function ago(at: number): string {
-  const m = Math.round((Date.now() - at) / 60_000);
-  return m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
-}
-
 const PHASE_LABEL: Record<Phase, string> = {
   idle: 'Ready', sending: 'Sending', working: 'Working', answering: 'Answering', done: 'Ready', error: 'Ready',
 };
@@ -86,10 +81,10 @@ export function MuseApp() {
   const [oneShot, setOneShot] = useState<Mood | null>('wave');
   const lastPhase = useRef(state.phase);
   useEffect(() => {
-    const finished = lastPhase.current !== 'done' && state.phase === 'done' && !state.restoredAt;
+    const finished = lastPhase.current !== 'done' && state.phase === 'done';
     if (lastPhase.current !== state.phase) setOneShot(finished ? 'celebrate' : null);
     lastPhase.current = state.phase;
-  }, [state.phase, state.restoredAt]);
+  }, [state.phase]);
   useEffect(() => {
     if (!oneShot) return;
     const t = window.setTimeout(() => setOneShot(null), 6_000);
@@ -150,12 +145,6 @@ export function MuseApp() {
   };
   useEffect(() => () => window.clearTimeout(autoSend.current), []);
 
-  const [, tick] = useState(0);
-  useEffect(() => {
-    if (!state.restoredAt) return;
-    const t = window.setInterval(() => tick((n) => n + 1), 60_000);
-    return () => window.clearInterval(t);
-  }, [state.restoredAt]);
 
   if (overlay === 'approvals' && state.approvals.length) {
     return <ApprovalSheet approvals={state.approvals} onClose={closeOverlay} />;
@@ -168,7 +157,7 @@ export function MuseApp() {
     : !state.reached ? 'Connecting…'
     : !state.connected ? 'Mac offline'
     : state.queued ? `${PHASE_LABEL[state.phase]} · ${state.queued} queued`
-    : state.restoredAt ? `Last chat ${ago(state.restoredAt)}` : PHASE_LABEL[state.phase];
+    : PHASE_LABEL[state.phase];
   const linked = state.link === 'linked' || state.link === 'off';
   const empty = !state.thread.length;
   const lastIndex = state.thread.length - 1;

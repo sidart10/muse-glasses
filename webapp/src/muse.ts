@@ -24,7 +24,6 @@ export type MuseState = {
   approvals: Approval[];
   error: string;
   queued: number;
-  restoredAt?: number; // set when the screen shows the last conversation from a previous session
   reached?: boolean;   // the Mac has answered (or failed to) at least once since launch
   thread: Msg[];       // the whole chat, oldest first (kept on the glasses)
   activity: string;    // what Beru is doing right now; empty when idle
@@ -33,6 +32,7 @@ export type MuseState = {
 type FeedEvent = {
   seq: number;
   request_id: string;
+  at?: number; // seconds since the epoch, set by the bridge
   type: string;
   text?: string;
   done?: boolean;
@@ -283,40 +283,23 @@ const newRequestId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)),
 const TOOL_DEADLINE_MS = 9_000; // WebMCP abandons a tool call at 10 s
 const MAX_STEPS = 4;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const RUNNING_MAX_S = 600; // the bridge gives up on a request after 10 minutes
 const fresh = (link: Link): MuseState => ({
   link, connected: false, phase: 'idle', you: '', replies: [], steps: [], approvals: [], error: '', queued: 0,
   thread: [], activity: '',
 });
 
-// The chat thread, kept on the glasses so the app opens on it instantly.
-const LAST_KEY = 'beruThread';
-const THREAD_KEEP = 40;            // messages
-const THREAD_TTL_MS = 3 * 24 * 3600_000;
-type SavedThread = { thread: Msg[]; at: number };
-function saveLast(s: MuseState): void {
-  if (!s.thread.length) return;
-  const saved: SavedThread = { thread: s.thread.slice(-THREAD_KEEP), at: Date.now() };
-  try { localStorage.setItem(LAST_KEY, JSON.stringify(saved)); } catch { /* storage full: not worth failing over */ }
-}
-function restored(link: Link): MuseState {
-  const base = fresh(link);
-  try {
-    localStorage.removeItem('beruLastConversation'); // previous single-turn format
-    const saved = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null') as SavedThread | null;
-    if (!saved?.thread?.length) return base;
-    if (Date.now() - saved.at > THREAD_TTL_MS) { localStorage.removeItem(LAST_KEY); return base; }
-    return { ...base, phase: 'done', thread: saved.thread, restoredAt: saved.at };
-  } catch {
-    return base;
-  }
-}
+// Every launch starts a new chat: old messages aren't kept on the glasses (your full history is in
+// the Muse app). Clear what earlier versions saved.
+const THREAD_KEEP = 40; // messages kept on screen within one session
+try { ['beruThread', 'beruLastConversation'].forEach((k) => localStorage.removeItem(k)); } catch { /* private mode */ }
 
 const upsert = (thread: Msg[], msg: Msg): Msg[] =>
   thread.some((m) => m.id === msg.id) ? thread.map((m) => (m.id === msg.id ? { ...m, text: msg.text } : m))
     : [...thread, msg].slice(-THREAD_KEEP);
 
 export function useMuse() {
-  const [state, setState] = useState<MuseState>(() => (token() ? restored('linked') : fresh('unlinked')));
+  const [state, setState] = useState<MuseState>(() => (token() ? fresh('linked') : fresh('unlinked')));
   const active = useRef<string | null>(null);      // request the bridge is running now
   const mine = useRef(new Set<string>());           // requests this screen sent and not yet started
   const spokenApprovals = useRef(new Set<string>());
@@ -364,7 +347,7 @@ export function useMuse() {
 
   // A new install link opened in an already-running app.
   useEffect(() => {
-    const onHash = () => { if (captureToken()) { setState(restored('linked')); setGeneration((g) => g + 1); } };
+    const onHash = () => { if (captureToken()) { setState(fresh('linked')); setGeneration((g) => g + 1); } };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
@@ -394,7 +377,7 @@ export function useMuse() {
         active.current = e.request_id;
         stopSpeaking();
         setState((s) => ({ ...s, phase: 'sending', you: e.text ?? '', replies: [], steps: [], error: '',
-                           queued: mine.current.size, restoredAt: undefined, activity: '',
+                           queued: mine.current.size, activity: '',
                            thread: upsert(s.thread, { id: `u-${e.request_id}`, role: 'you', text: e.text ?? '',
                                                       at: Date.now() }) }));
         return;
@@ -411,7 +394,6 @@ export function useMuse() {
           const phase: Phase = e.late || s.phase === 'done' ? s.phase : 'answering';
           const thread = upsert(s.thread, { id: `b-${id}`, role: 'beru', text: e.text ?? '', at: Date.now() });
           const next = { ...s, phase, replies, thread, activity: e.done ? '' : s.activity };
-          saveLast(next); // as each reply lands, so closing the app mid-answer keeps it
           return next;
         });
         if (e.done) speakReply(e.request_id, e.text ?? '', !!e.late);
@@ -432,12 +414,10 @@ export function useMuse() {
                                       steps: s.steps.map((st) => ({ ...st, done: true })),
                                       thread: upsert(s.thread, { id: `e-${e.request_id}`, role: 'error',
                                                                  text: e.text ?? 'Something went wrong', at: Date.now() }) };
-            saveLast(next);
             return next;
           }
           case 'done': {
             const next: MuseState = { ...s, phase: 'done', activity: '', steps: s.steps.map((st) => ({ ...st, done: true })) };
-            saveLast(next);
             return next;
           }
           default:
@@ -452,7 +432,6 @@ export function useMuse() {
       if (controller.signal.aborted) return 0;
       if (err instanceof ApiError && err.status === 401) {
         localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(LAST_KEY); // the link is gone: so is the saved conversation
         setState(fresh('expired'));
         controller.abort();
         return 0;
@@ -476,9 +455,16 @@ export function useMuse() {
           reportBoot();
           const lastApprovals = first.events.filter((e) => e.type === 'approvals').at(-1)?.items ?? [];
           lastApprovals.forEach((a) => spokenApprovals.current.add(a.id));
-          setState((s) => (s.restoredAt ? { ...s, link: 'linked', connected: first.connected, approvals: lastApprovals, reached: true }
-            : { ...s, link: 'linked', connected: first.connected, approvals: lastApprovals, reached: true,
-                phase: s.phase === 'error' ? 'idle' : s.phase, error: '' }));
+          setState((s) => ({ ...s, link: 'linked', connected: first.connected, approvals: lastApprovals, reached: true,
+                             phase: s.phase === 'error' ? 'idle' : s.phase, error: '' }));
+          // A request still running when the app opens (sent before closing, or by voice) is picked up,
+          // so its answer isn't lost. Finished conversations are not brought back.
+          const finished = new Set(first.events.filter((e) => e.type === 'done' || e.type === 'error')
+            .map((e) => e.request_id));
+          const running = first.events.filter((e) => e.type === 'sent').at(-1);
+          if (running && !finished.has(running.request_id) && Date.now() / 1000 - (running.at ?? 0) < RUNNING_MAX_S) {
+            first.events.filter((e) => e.request_id === running.request_id && e.seq >= running.seq).forEach(handle);
+          }
           break;
         } catch (err) {
           const wait = onFailure(err);
