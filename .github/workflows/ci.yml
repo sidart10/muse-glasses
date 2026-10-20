@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bridge:
+    name: Bridge tests (Python)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Fetch Meta's Muse Gadget SDK at the pinned commit
+        run: |
+          . scripts/config.sh
+          git clone -q "$SDK_REPO" vendor/muse-gadget-sdk
+          git -C vendor/muse-gadget-sdk checkout -q "$SDK_COMMIT"
+      - name: Install
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/bin/python -e ".[test]" -e vendor/muse-gadget-sdk/linux
+      - name: Test
+        run: .venv/bin/python -m pytest -q
+
+  webapp:
+    name: Web app (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash -n deploy.sh scripts/install.sh scripts/config.sh
+      - run: shellcheck --severity=error deploy.sh scripts/install.sh scripts/config.sh

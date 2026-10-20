@@ -3,8 +3,22 @@ name = "muse-glasses"
 version = "0.1.0"
 description = "Talk to your Muse from Meta Ray-Ban Display glasses: macOS Muse gadget + bridge + glasses web app"
 license = "Apache-2.0"
+readme = "README.md"
+authors = [{ name = "Siddharth Dani" }]
+keywords = ["muse", "meta", "ray-ban-display", "smart-glasses", "webmcp", "voice-assistant"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Topic :: Home Automation",
+]
 requires-python = ">=3.11"
 dependencies = ["aiohttp>=3.9", "bless>=0.2.6", "cryptography>=3.3.2", "websockets>=13"]
+
+[project.urls]
+Homepage = "https://github.com/sidart10/muse-glasses"
+Issues = "https://github.com/sidart10/muse-glasses/issues"
+Changelog = "https://github.com/sidart10/muse-glasses/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-aiohttp", "pytest-asyncio"]

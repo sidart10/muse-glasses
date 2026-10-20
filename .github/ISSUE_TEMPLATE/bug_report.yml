@@ -1,0 +1,34 @@
+name: Bug report
+description: Something on the glasses, the bridge or the installer isn't working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Never paste tokens, install links (`#k=…`), QR codes or private chat content.**
+        For security problems, use [private vulnerability reporting](../security/advisories/new) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where?
+      options: [Glasses web app, Bridge / Muse connection, Pairing, Voice, Installer, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: From `~/Library/Logs/muse-bridge.log`. Check them for anything private first.
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: macOS version, Mac model, glasses software version if you know it.

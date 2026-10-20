@@ -1,5 +1,10 @@
 # muse-glasses
 
+[![CI](https://github.com/sidart10/muse-glasses/actions/workflows/ci.yml/badge.svg)](https://github.com/sidart10/muse-glasses/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE)
+![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
+![Unofficial](https://img.shields.io/badge/Meta-unofficial-orange.svg)
+
 **Talk to your own [Muse](https://muse.ai) from Meta Ray-Ban Display glasses.**
 
 A small web app on the glasses (called **Beru** here, after my assistant) chats with your Muse. Your Mac pairs with Muse as a "gadget" using Meta's open-source [Muse Gadget SDK](https://github.com/facebookincubator/muse-gadget-sdk), ported to macOS, and relays messages between the glasses and Muse.
@@ -195,6 +200,10 @@ cd webapp && npm run dev                            # web app with hot reload; /
 - **The app says "Mac offline".** Check the bridge log, and that the tunnel is up: `curl https://<host>/beru/` should return the page.
 - **The voice is slow.** The voice service must run with `ProcessType=Interactive`, which the installer sets. Otherwise macOS throttles it.
 - **A new version doesn't show.** The glasses keep a stored copy and refresh it in the background, so a new deploy appears on the launch after next.
+
+## Contributing
+
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md). Report security problems privately ([SECURITY.md](SECURITY.md)). Changes are listed in the [changelog](CHANGELOG.md).
 
 ## License
 

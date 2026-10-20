@@ -1,0 +1,11 @@
+name: Idea or improvement
+description: Suggest something that would make Beru better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: The problem it solves, and how you'd picture it on the glasses.
+    validations:
+      required: true

@@ -27,7 +27,7 @@ git -C "$SRC/vendor/muse-gadget-sdk" checkout -q "$SDK_COMMIT"
 
 echo "2/5 Python environment and web app dependencies"
 [ -x "$SRC/.venv/bin/python" ] || uv venv -q --python 3.12 "$SRC/.venv"
-uv pip install -q --python "$SRC/.venv/bin/python" -e "$SRC[test,qr]" -e "$SRC/vendor/muse-gadget-sdk/linux"
+uv pip install -q --python "$SRC/.venv/bin/python" -e "${SRC}[test,qr]" -e "$SRC/vendor/muse-gadget-sdk/linux"
 (cd "$SRC/webapp" && npm ci --silent)
 
 echo "3/5 Settings in $CONFIG"
