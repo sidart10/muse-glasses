@@ -239,7 +239,8 @@ async def _feed(request: web.Request) -> web.Response:
     except ValueError:
         return web.json_response({"error": "bad query"}, status=400)
     events = await bridge.feed.wait_after(after, wait) if wait > 0 else bridge.feed.after(after)
-    return web.json_response({"connected": bridge.backend.connected(), "events": events})
+    return web.json_response({"connected": bridge.backend.connected(), "events": events,
+                              "build": request.app.get("build", "")})
 
 
 async def _audio(request: web.Request) -> web.StreamResponse:
@@ -332,6 +333,10 @@ def make_app(bridge: Bridge, static_dir: Path | None = None) -> web.Application:
     app.router.add_get("/api/audio/{message_id}", _audio)
     if static_dir and (static_dir / "index.html").exists():
         index = static_dir / "index.html"
+        # The current web app version (its fingerprinted script name). The glasses compare it with the
+        # version they're running and reload when the stored copy is out of date.
+        found = re.search(r"/assets/(index-[\w-]+\.js)", index.read_text())
+        app["build"] = found.group(1) if found else ""
         async def _index(_request: web.Request) -> web.FileResponse:
             return web.FileResponse(index)
 

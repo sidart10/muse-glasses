@@ -311,3 +311,13 @@ async def test_launcher_manifest_falls_back_to_the_bundled_glyph(aiohttp_client,
     (tmp_path / "icons" / "mascot-launcher.png").write_bytes(b"png")
     data = await (await client.get("/beru/.well-known/meta-wearables-manifest.json")).json()
     assert data["appearance"]["icon"]["src"] == "/icons/mascot-launcher.png"
+
+
+async def test_feed_reports_the_web_app_build(aiohttp_client, tmp_path, monkeypatch):
+    from muse_bridge.backends import FakeBackend
+    from muse_bridge.server import Bridge, make_app
+    monkeypatch.setenv("MUSE_BRIDGE_API_TOKEN", "t" * 32)
+    (tmp_path / "index.html").write_text('<script type="module" crossorigin src="/assets/index-AbC123_x.js"></script>')
+    client = await aiohttp_client(make_app(Bridge(FakeBackend()), tmp_path))
+    data = await (await client.get("/api/feed?after=0&wait=0", headers={"Authorization": "Bearer " + "t" * 32})).json()
+    assert data["build"] == "index-AbC123_x.js"

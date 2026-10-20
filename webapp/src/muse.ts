@@ -284,6 +284,20 @@ const TOOL_DEADLINE_MS = 9_000; // WebMCP abandons a tool call at 10 s
 const MAX_STEPS = 4;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const RUNNING_MAX_S = 600; // the bridge gives up on a request after 10 minutes
+
+// The glasses keep a stored copy of the app and refresh it in the background, so a launch can run
+// the previous version. When the Mac reports a newer one, drop the stored copy and reload now.
+// Tried once per version, so a failed update can't loop.
+async function updateIfStale(serverBuild: string | undefined): Promise<boolean> {
+  const running = document.querySelector<HTMLScriptElement>('script[type=module][src*="/assets/"]')
+    ?.getAttribute('src')?.split('/').pop();
+  if (!serverBuild || !running || running === serverBuild) return false;
+  if (sessionStorage.getItem('beruUpdatedTo') === serverBuild) return false;
+  sessionStorage.setItem('beruUpdatedTo', serverBuild);
+  try { await Promise.all((await caches.keys()).map((k) => caches.delete(k))); } catch { /* no Cache API */ }
+  location.reload();
+  return true;
+}
 const fresh = (link: Link): MuseState => ({
   link, connected: false, phase: 'idle', you: '', replies: [], steps: [], approvals: [], error: '', queued: 0,
   thread: [], activity: '',
@@ -449,8 +463,9 @@ export function useMuse() {
       let backoff = 1_000;
       while (!controller.signal.aborted) {
         try {
-          const first = await api<{ connected: boolean; events: FeedEvent[] }>('/api/feed?after=0&wait=0',
+          const first = await api<{ connected: boolean; events: FeedEvent[]; build?: string }>('/api/feed?after=0&wait=0',
                                                                                 { signal: controller.signal });
+          if (await updateIfStale(first.build)) return;
           after = first.events.at(-1)?.seq ?? 0;
           reportBoot();
           const lastApprovals = first.events.filter((e) => e.type === 'approvals').at(-1)?.items ?? [];
@@ -515,6 +530,7 @@ function reportBoot(): void {
   const ms = (v: number | undefined) => (v === undefined ? 'n/a' : Math.round(v));
   void reportDiag({
     kind: 'boot',
+    version: document.querySelector<HTMLScriptElement>('script[type=module][src*="/assets/"]')?.getAttribute('src')?.split('/').pop() ?? 'dev',
     storedCopy: !!navigator.serviceWorker?.controller,
     fromCache: nav ? nav.transferSize === 0 : 'n/a',
     dnsAndConnect: ms(nav && nav.connectEnd - nav.domainLookupStart),
