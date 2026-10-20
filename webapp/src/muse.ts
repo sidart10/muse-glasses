@@ -370,6 +370,21 @@ export function useMuse() {
     if (!token()) return;
     const controller = new AbortController();
     let after = 0;
+    let boot = ''; // the bridge's start id; a change means it restarted
+    // Requests live in the bridge's memory, so a restart (an update, a crash) loses the one in
+    // progress. Say so instead of showing "working" forever.
+    const RESTART_MSG = 'The Mac restarted while Beru was working on this. Muse may still finish it in the Muse app; or ask again.';
+    const noticeRestart = (next: string | undefined) => {
+      const restarted = !!next && !!boot && next !== boot;
+      if (next) boot = next;
+      if (!restarted) return;
+      const waiting = mine.current.size > 0;
+      mine.current.clear();
+      setState((s) => (s.phase === 'sending' || s.phase === 'working' || s.phase === 'answering' || waiting
+        ? { ...s, phase: 'error', activity: '', queued: 0, error: RESTART_MSG,
+            thread: upsert(s.thread, { id: `e-restart-${Date.now()}`, role: 'error', text: RESTART_MSG, at: Date.now() }) }
+        : { ...s, queued: 0 }));
+    };
 
     const announce = (items: Approval[]) => {
       const first = items[0];
@@ -463,9 +478,10 @@ export function useMuse() {
       let backoff = 1_000;
       while (!controller.signal.aborted) {
         try {
-          const first = await api<{ connected: boolean; events: FeedEvent[]; build?: string }>('/api/feed?after=0&wait=0',
+          const first = await api<{ connected: boolean; events: FeedEvent[]; build?: string; boot?: string }>('/api/feed?after=0&wait=0',
                                                                                 { signal: controller.signal });
           if (await updateIfStale(first.build)) return;
+          noticeRestart(first.boot);
           after = first.events.at(-1)?.seq ?? 0;
           reportBoot();
           const lastApprovals = first.events.filter((e) => e.type === 'approvals').at(-1)?.items ?? [];
@@ -490,8 +506,9 @@ export function useMuse() {
       backoff = 3_000;
       while (!controller.signal.aborted) {
         try {
-          const { connected, events } = await api<{ connected: boolean; events: FeedEvent[] }>(
+          const { connected, events, boot: current } = await api<{ connected: boolean; events: FeedEvent[]; boot?: string }>(
             `/api/feed?after=${after}`, { signal: controller.signal });
+          noticeRestart(current);
           for (const e of events) { after = e.seq; handle(e); }
           setState((s) => (s.connected === connected && s.link === 'linked' ? s
             : { ...s, connected, link: 'linked' }));

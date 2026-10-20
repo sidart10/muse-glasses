@@ -321,3 +321,17 @@ async def test_feed_reports_the_web_app_build(aiohttp_client, tmp_path, monkeypa
     client = await aiohttp_client(make_app(Bridge(FakeBackend()), tmp_path))
     data = await (await client.get("/api/feed?after=0&wait=0", headers={"Authorization": "Bearer " + "t" * 32})).json()
     assert data["build"] == "index-AbC123_x.js"
+
+
+async def test_health_reports_busy_and_feed_reports_boot(aiohttp_client, tmp_path, monkeypatch):
+    from muse_bridge.backends import FakeBackend
+    from muse_bridge.server import Bridge, make_app
+    monkeypatch.setenv("MUSE_BRIDGE_API_TOKEN", "t" * 32)
+    auth = {"Authorization": "Bearer " + "t" * 32}
+    bridge = Bridge(FakeBackend())
+    client = await aiohttp_client(make_app(bridge))
+    assert (await (await client.get("/api/health", headers=auth)).json())["busy"] is False
+    feed = await (await client.get("/api/feed?after=0&wait=0", headers=auth)).json()
+    assert feed["boot"] == bridge.boot and len(bridge.boot) == 12
+    bridge.submit("hello")
+    assert (await (await client.get("/api/health", headers=auth)).json())["busy"] is True

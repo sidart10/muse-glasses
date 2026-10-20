@@ -84,6 +84,14 @@ class Bridge:
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=SAY_QUEUE_MAX)
         self._worker: asyncio.Task | None = None
         self._ids: dict[str, None] = {}  # recent request ids, oldest first
+        self._active: str | None = None
+        # Changes on every start. Requests live in memory, so after a restart the glasses use this to
+        # tell that a request they were waiting on is gone.
+        self.boot = uuid.uuid4().hex[:12]
+
+    @property
+    def busy(self) -> bool:
+        return self._active is not None or not self._queue.empty()
 
     async def start(self) -> None:
         if hasattr(self.backend, "set_global_sink"):
@@ -133,16 +141,23 @@ class Bridge:
     async def _work(self) -> None:
         while True:
             request_id, text = await self._queue.get()
-            await self.feed.add(request_id, {"type": "sent", "text": text})
-            if settings.disabled():  # kill switch also drops anything already queued
-                await self.feed.add(request_id, {"type": "error", "text": "The bridge is switched off."})
-                continue
+            self._active = request_id
             try:
-                async for event in self.backend.ask(GLASSES_HINT + text, request_id):
-                    await self.feed.add(request_id, event)
-            except Exception as exc:
-                log.exception("request %s failed", request_id)
-                await self.feed.add(request_id, {"type": "error", "text": f"Bridge error: {type(exc).__name__}"})
+                await self._run(request_id, text)
+            finally:
+                self._active = None
+
+    async def _run(self, request_id: str, text: str) -> None:
+        await self.feed.add(request_id, {"type": "sent", "text": text})
+        if settings.disabled():  # kill switch also drops anything already queued
+            await self.feed.add(request_id, {"type": "error", "text": "The bridge is switched off."})
+            return
+        try:
+            async for event in self.backend.ask(GLASSES_HINT + text, request_id):
+                await self.feed.add(request_id, event)
+        except Exception as exc:
+            log.exception("request %s failed", request_id)
+            await self.feed.add(request_id, {"type": "error", "text": f"Bridge error: {type(exc).__name__}"})
 
 
 def _authorized(request: web.Request) -> bool:
@@ -240,7 +255,7 @@ async def _feed(request: web.Request) -> web.Response:
         return web.json_response({"error": "bad query"}, status=400)
     events = await bridge.feed.wait_after(after, wait) if wait > 0 else bridge.feed.after(after)
     return web.json_response({"connected": bridge.backend.connected(), "events": events,
-                              "build": request.app.get("build", "")})
+                              "build": request.app.get("build", ""), "boot": bridge.boot})
 
 
 async def _audio(request: web.Request) -> web.StreamResponse:
@@ -307,7 +322,8 @@ async def _diag(request: web.Request) -> web.Response:
 
 
 async def _health(request: web.Request) -> web.Response:
-    return web.json_response({"ok": True, "connected": request.app["bridge"].backend.connected()})
+    bridge: Bridge = request.app["bridge"]
+    return web.json_response({"ok": True, "connected": bridge.backend.connected(), "busy": bridge.busy})
 
 
 class PathOnlyAccessLogger(AbstractAccessLogger):
