@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1, user-scalable=no">
+  <title>Beru</title>
+  <meta name="application-name" content="Beru">
+  <meta name="description" content="Talk to Beru, your Muse, from your glasses.">
+  <meta name="mrbd-web-app-capable" content="yes">
+  <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="preload" as="image" href="/mascot/wave.jpg">
+  <style>
+    html, body, #root { height: 100%; margin: 0; overflow: hidden; background-color: var(--uit-color-background-window, #000); }
+    /* First frame, painted before any script loads; React replaces it. */
+    .splash { height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+              gap: 18px; color: #f2f2f2; font: 600 34px/1.2 system-ui, -apple-system, sans-serif; }
+    .splash img { width: 220px; height: 220px; }
+    .splash small { font: 400 20px/1.3 system-ui, -apple-system, sans-serif; color: #9aa4ae; }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="splash"><img src="/mascot/wave.jpg" alt="" onerror="this.remove()"><span>Beru</span><small>Connecting to your Mac…</small></div></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

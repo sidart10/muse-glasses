@@ -1,0 +1,18 @@
+muse-glasses
+Copyright 2026 Siddharth Dani
+
+This project is not affiliated with, endorsed by, or supported by Meta Platforms, Inc.
+"Muse", "Meta", "Ray-Ban Display" and the Muse mascot are trademarks or works of their
+respective owners.
+
+This project builds on Meta's Muse Gadget SDK
+(https://github.com/facebookincubator/muse-gadget-sdk), licensed under the Apache License 2.0.
+The SDK is not included in this repository: scripts/install.sh clones it at a pinned commit.
+musegadget_mac/ble_server_macos.py re-implements the SDK's BlueZ Bluetooth server for macOS
+(CoreBluetooth) and reuses the SDK's protocol constants (service and characteristic UUIDs).
+
+The glasses web app uses Meta's Wearables UI Toolkit (@wearables-ui-toolkit/*), licensed
+under the Apache License 2.0, installed from npm and not included in this repository.
+
+The Muse mascot artwork is not included. tools/make_mascot.py and tools/make_icons.py
+extract it from the Muse app installed on your own Mac, for your personal use only.

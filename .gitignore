@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+# Meta's Muse Gadget SDK is vendored locally at a pinned commit (see README), not committed
+vendor/
+# Web app build + deps
+webapp/node_modules/
+webapp/dist/
+webapp/legacy/
+# Local state and secrets never live here, but guard anyway
+*.env
+.env*
+*.pem
+*.key
+pairing.json
+identity*.json
+# Meta/Muse proprietary assets (official mascot clips, fonts) are extracted from the
+# locally installed Muse app at build time and must never be committed
+webapp/public/mascot/
+webapp/public/fonts/
+webapp/public/icons/

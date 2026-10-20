@@ -1,0 +1,36 @@
+/* Layout only. Colors, type, materials and motion come from the UI Toolkit. */
+.muse-empty {
+  position: absolute;
+  inset: 88px 32px 116px 32px;
+}
+.muse-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+.muse-mascot { display: block; flex: none; object-fit: contain; background: transparent; }
+
+/* Chat thread (Meta messaging example layout) */
+.thread-shell { position: absolute; inset: 0 0 120px 0; }
+.thread-shell > * { height: 100%; }
+.thread { display: flex; flex-direction: column; gap: 16px; padding: 4px 48px 20px; }
+.msg-row { display: flex; justify-content: flex-start; }
+.msg-row--you { justify-content: flex-end; padding-left: 64px; }
+.msg-bubble { max-width: 100%; }
+.msg-content { padding: 16px 24px 18px; }
+.msg-content--plain { padding: 10px 14px; }  /* Beru: text on the lens, no bubble */
+.msg-content--right { padding-right: 34px; }
+.msg-content p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.3; }
+/* Beru's mascot under your latest message, with what it's doing while it works */
+.mascot-row { display: flex; align-items: center; gap: 12px; min-height: 96px; margin: -6px 0 -22px; }
+.msg-row--you { scroll-margin-top: 92px; }
+
+/* Bottom dock: one Dictate button, or the dictation field */
+.muse-dock { position: absolute; left: 44px; right: 44px; bottom: 22px; }
+.muse-send-error { display: block; margin: 0 8px 6px; }
+/* Beru's messages sit on the lens: the material only shows when you swipe up and select one */
+.msg-row--beru .msg-bubble:not(:focus) canvas { opacity: 0; }
+.msg-row--beru .msg-bubble canvas { transition: opacity 160ms ease; }
