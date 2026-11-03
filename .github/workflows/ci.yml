@@ -17,7 +17,7 @@ jobs:
     name: Bridge tests (Python)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
       - name: Fetch Meta's Muse Gadget SDK at the pinned commit
         run: |
@@ -38,7 +38,7 @@ jobs:
       run:
         working-directory: webapp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -51,6 +51,6 @@ jobs:
     name: Shell scripts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: bash -n deploy.sh scripts/install.sh scripts/config.sh
       - run: shellcheck --severity=error deploy.sh scripts/install.sh scripts/config.sh
